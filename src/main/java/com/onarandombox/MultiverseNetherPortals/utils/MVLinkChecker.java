@@ -2,6 +2,7 @@ package com.onarandombox.MultiverseNetherPortals.utils;
 
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import com.onarandombox.MultiverseCore.api.MultiverseWorld;
+import com.onarandombox.MultiverseNetherPortals.enums.PortalType;
 import com.onarandombox.MultiverseNetherPortals.MultiverseNetherPortals;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -19,7 +20,14 @@ public class MVLinkChecker {
     }
 
     public Location findNewTeleportLocation(Location fromLocation, String worldstring, Player p) {
+        return findNewTeleportLocation(fromLocation, worldstring, p, null);
+    }
+
+    public Location findNewTeleportLocation(Location fromLocation, String worldstring, Player p, PortalType type) {
         MultiverseWorld tpto = this.worldManager.getMVWorld(worldstring);
+
+        // create the new location from the old, and then modify as needed
+        Location toLocation = fromLocation.clone();
 
         if (tpto == null) {
             this.plugin.log(Level.FINE, "Can't find world " + worldstring);
@@ -30,19 +38,34 @@ public class MVLinkChecker {
         } else {
             this.plugin.log(Level.FINE, "Finding new teleport location for player " + p.getName() + " to world " + worldstring);
 
-            // Set the output location to the same XYZ coords but different world
-            double toScaling = this.worldManager.getMVWorld(tpto.getName()).getScaling();
-            double fromScaling = this.worldManager.getMVWorld(fromLocation.getWorld().getName()).getScaling();
+            if (type ==  PortalType.END) {
+                // if portal is to the end, set the end spawn area
+                toLocation.setX(0);
+                toLocation.setY(62);
+                toLocation.setZ(0);
 
-            fromLocation = this.getScaledLocation(fromLocation, fromScaling, toScaling);
-            fromLocation.setWorld(tpto.getCBWorld());
-            return fromLocation;
+            } else {
+                // Set the output location to the same XYZ coords but different world
+                double toScaling = this.worldManager.getMVWorld(tpto.getName()).getScaling();
+                double fromScaling = this.worldManager.getMVWorld(fromLocation.getWorld().getName()).getScaling();
+
+                toLocation = this.getScaledLocation(fromLocation, fromScaling, toScaling);
+            }
+            toLocation.setWorld(tpto.getCBWorld());
+            return toLocation;
         }
         return null;
     }
 
     public void getNewTeleportLocation(PlayerPortalEvent event, Location fromLocation, String worldstring) {
+        getNewTeleportLocation(event, fromLocation, worldstring, null);
+    }
+
+    public void getNewTeleportLocation(PlayerPortalEvent event, Location fromLocation, String worldstring, PortalType type) {
         MultiverseWorld tpto = this.worldManager.getMVWorld(worldstring);
+
+        // create the new location from the old, and then modify as needed
+        Location toLocation = fromLocation.clone();
 
         if (tpto == null) {
             this.plugin.log(Level.FINE, "Can't find " + worldstring);
@@ -53,14 +76,22 @@ public class MVLinkChecker {
         } else {
             this.plugin.log(Level.FINE, "Getting new teleport location for player " + event.getPlayer().getName() + " to world " + worldstring);
 
-            // Set the output location to the same XYZ coords but different world
-            double toScaling = this.worldManager.getMVWorld(tpto.getName()).getScaling();
-            double fromScaling = this.worldManager.getMVWorld(event.getFrom().getWorld().getName()).getScaling();
+            if (type ==  PortalType.END) {
+                // if portal is to the end, set the end spawn area
+                toLocation.setX(0);
+                toLocation.setY(62);
+                toLocation.setZ(0);
 
-            fromLocation = this.getScaledLocation(fromLocation, fromScaling, toScaling);
-            fromLocation.setWorld(tpto.getCBWorld());
+            } else {
+                // Set the output location to the same XYZ coords but different world
+                double toScaling = this.worldManager.getMVWorld(tpto.getName()).getScaling();
+                double fromScaling = this.worldManager.getMVWorld(event.getFrom().getWorld().getName()).getScaling();
+
+                toLocation = this.getScaledLocation(fromLocation, fromScaling, toScaling);
+            }
+            toLocation.setWorld(tpto.getCBWorld());
         }
-        event.setTo(fromLocation);
+        event.setTo(toLocation);
     }
 
     private Location getScaledLocation(Location fromLocation, double fromScaling, double toScaling) {
